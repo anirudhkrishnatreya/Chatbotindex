@@ -29,8 +29,7 @@
                         <span class="online">● Online</span>
                     </div>
                 </div>
-                <div class="col-2" style="justify-content: end; display: flex; align-items: center;"
-                    onclick="closeChat()">
+                <div class="col-2" style="justify-content: end; display: flex; align-items: center;" onclick="closeChat()">
                     <img src="../static/close.png" class="close_img">
                 </div>
             </div>
@@ -62,6 +61,7 @@
         }, false);
 
         var currentTargetId;
+        var conversationId;
         var availableOptions = []; // To store current available options
 
         document.addEventListener("DOMContentLoaded", function () {
@@ -70,6 +70,7 @@
 
         function fetchConversationFlow() {
             const mockResponse = [{
+                "conversationId": "4FA2CB0230984522916D283B965C152C",
                 "data": [
                     {
                         "content": "<p>Hey i am harris how can i help you</p>",
@@ -98,11 +99,14 @@
                             }
                         ],
                         "label": "Options",
-                        "source": "dndnode_10"
+                        "source": "dndnode_2"
                     }
                 ],
                 "type": 0
             }];
+
+            // Assuming there's only one conversation in mockResponse for simplicity
+            conversationId = mockResponse[0].conversationId;
 
             setTimeout(() => {
                 processResponse(mockResponse[0]);
@@ -127,6 +131,18 @@
 
             // If option is available, send it to backend
             if (option) {
+                sendOptionToBackend(option);
+            } else if (userMessage) {
+                // If userMessage doesn't match any option, we still need to handle it
+                // Assuming currentTargetId should be used in such cases
+                // Create a placeholder option object to send
+                option = {
+                    source: "unknown", // You might want to adjust this depending on your flow
+                    sourceHandle: "unknown",
+                    target: currentTargetId || "unknown", // Fallback to unknown if currentTargetId is not set
+                    value: userMessage,
+                    conversationId: conversationId
+                };
                 sendOptionToBackend(option);
             }
 
@@ -160,7 +176,7 @@
             if (data.type === 1 && data.data.length > 0) {
                 data.data.forEach(message => {
                     if (message.label === 'Options') {
-                        addOptions(message);
+                        addOptions(message, data.conversationId);
                     } else {
                         addMessage('bot', message.content);
                     }
@@ -170,7 +186,7 @@
                     if (message.label === 'Message') {
                         addMessage('bot', message.content);
                     } else if (message.label === 'Options') {
-                        addOptions(message);
+                        addOptions(message, data.conversationId);
                     }
                 });
             }
@@ -190,7 +206,7 @@
             messageContainer.scrollTop = messageContainer.scrollHeight;
         }
 
-        function addOptions(message) {
+        function addOptions(message, conversationId) {
             var messageContainer = document.getElementById("chat-box");
             var botMessageDiv = document.createElement('div');
             botMessageDiv.classList.add('row', 'd-flex', 'message-bot');
@@ -200,6 +216,10 @@
             var source = message.source;
 
             message.content.forEach(option => {
+                // Add the source and conversationId to each option object
+                option.source = source;
+                option.conversationId = conversationId;
+
                 availableOptions.push(option); // Store the options for later matching
 
                 var optionButton = document.createElement('button');
@@ -210,9 +230,6 @@
                     sendMessage(option); // Send the selected option to backend
                 });
                 botMessageDiv.appendChild(optionButton);
-
-                // Modify the option object to include the source
-                option.source = source;
             });
         }
 
@@ -222,7 +239,8 @@
                 source: option.source, // Use the source from the option object
                 sourceHandle: option.sourceHandle,
                 target: option.target,
-                value: option.value
+                value: option.value,
+                conversationId: option.conversationId // Include the conversationId
             };
 
             console.log(payload);
