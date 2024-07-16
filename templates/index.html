@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <link href="//maxcdn.bootstrapcdn.com/bootstrap/4.1.1/css/bootstrap.min.css" rel="stylesheet" id="bootstrap-css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="//maxcdn.bootstrapcdn.com/bootstrap/4.1.1/js/bootstrap.min.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="../static/Style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Flask Chatbot</title>
+</head>
+
+<body>
+    <header class="navbar">
+        <div class="top-chat align-items-center d-flex">
+            <div class="row" style="margin-left: 6px; width: 100%; display: flex;">
+                <div class="col-2">
+                    <img src="../static/Harris.png" class="user_img" style="margin-right: 5px;" alt="User Image" />
+                </div>
+                <div class="col-8 text-start">
+                    <div class="row">
+                        <span class="text-top">Chat with Harris</span>
+                    </div>
+                    <div class="row">
+                        <span class="online">● Online</span>
+                    </div>
+                </div>
+                <div class="col-2" style="justify-content: end; display: flex; align-items: center;"
+                    onclick="closeChat()">
+                    <img src="../static/close.png" class="close_img">
+                </div>
+            </div>
+        </div>
+    </header>
+    <main id="chat-box">
+        <!-- Chat messages will go here -->
+    </main>
+    <footer class="footer">
+        <div class="row" style="width: 100%;">
+            <div class="material-textfield">
+                <input type="text" id="user-input" placeholder="Type your message...">
+                <div class="imagesend" id="send-button">
+                    <img src="../static/send-icon.png" class="send-button">
+                </div>
+            </div>
+        </div>
+        <div class="row" style="width: 100%; justify-content: center;">
+            <div class="powered-by">
+                <span class="power-text">Powered By</span>
+                <img src="../static/cosmotech_real.png" class="logo-footer">
+            </div>
+        </div>
+    </footer>
+    <script>
+        var EmployeeModel;
+        window.addEventListener("message", function (event) {
+            EmployeeModel = event.data;
+        }, false);
+
+        var currentTargetId;
+        var availableOptions = []; // To store current available options
+
+        document.addEventListener("DOMContentLoaded", function () {
+            fetchConversationFlow();
+        });
+
+        function fetchConversationFlow() {
+            const mockResponse = [{
+                "data": [
+                    {
+                        "content": "<p>Hey i am harris how can i help you</p>",
+                        "label": "Message",
+                        "source": "dndnode_1"
+                    },
+                    {
+                        "content": [
+                            {
+                                "optionId": "option0",
+                                "sourceHandle": "option0",
+                                "target": "dndnode_3",
+                                "value": "Apply for OB request"
+                            },
+                            {
+                                "optionId": "option1",
+                                "sourceHandle": "option1",
+                                "target": "dndnode_4",
+                                "value": "Apply for leave "
+                            },
+                            {
+                                "optionId": "option2",
+                                "sourceHandle": "option2",
+                                "target": "dndnode_8",
+                                "value": "Download DTR Report"
+                            }
+                        ],
+                        "label": "Options",
+                        "source": "dndnode_10"
+                    }
+                ],
+                "type": 0
+            }];
+
+            setTimeout(() => {
+                processResponse(mockResponse[0]);
+            }, 1000);
+        }
+
+        function sendMessage(option = null) {
+            var userMessage = document.getElementById("user-input").value.trim();
+
+            // Check if option is provided or find the matched option
+            if (!option && userMessage) {
+                option = availableOptions.find(opt => opt.value.toLowerCase() === userMessage.toLowerCase());
+            }
+
+            // Clear input after processing
+            document.getElementById("user-input").value = "";
+
+            // Add user message to chat
+            if (userMessage || (option && option.value)) {
+                addMessage('user', userMessage || option.value);
+            }
+
+            // If option is available, send it to backend
+            if (option) {
+                sendOptionToBackend(option);
+            }
+
+            // Fetch response based on currentTargetId and type
+            fetch(`http://127.0.0.1:3100/api/GetRecord/${currentTargetId}/0`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+                .then(response => response.json())
+                .then(data => {
+                    processResponse(data);
+                })
+                .catch(error => console.error('Error sending message:', error));
+        }
+
+        document.getElementById("user-input").addEventListener("keypress", function (event) {
+            if (event.keyCode === 13) {
+                sendMessage();
+            }
+        });
+
+        document.getElementById('send-button').addEventListener('click', function () {
+            sendMessage();
+        });
+
+        function processResponse(data) {
+            availableOptions = []; // Clear previous options
+
+            if (data.type === 1 && data.data.length > 0) {
+                data.data.forEach(message => {
+                    if (message.label === 'Options') {
+                        addOptions(message);
+                    } else {
+                        addMessage('bot', message.content);
+                    }
+                });
+            } else if (data.type === 0 && data.data.length > 0) {
+                data.data.forEach(message => {
+                    if (message.label === 'Message') {
+                        addMessage('bot', message.content);
+                    } else if (message.label === 'Options') {
+                        addOptions(message);
+                    }
+                });
+            }
+        }
+
+        function addMessage(sender, message) {
+            var messageContainer = document.getElementById("chat-box");
+            var messageElement = document.createElement('div');
+
+            if (sender === 'user') {
+                messageElement.innerHTML = '<div class="message-user"><div class="chat-user-message user-message">' + message + '</div></div>';
+            } else {
+                messageElement.innerHTML = '<div class="row d-flex message-bot"><img class="user_img" src="../static/Harris.png"><div class="chat-message bot-message">' + message + '</div></div>';
+            }
+
+            messageContainer.appendChild(messageElement);
+            messageContainer.scrollTop = messageContainer.scrollHeight;
+        }
+
+        function addOptions(message) {
+            var messageContainer = document.getElementById("chat-box");
+            var botMessageDiv = document.createElement('div');
+            botMessageDiv.classList.add('row', 'd-flex', 'message-bot');
+            messageContainer.appendChild(botMessageDiv);
+
+            // Get the source from the message data
+            var source = message.source;
+
+            message.content.forEach(option => {
+                availableOptions.push(option); // Store the options for later matching
+
+                var optionButton = document.createElement('button');
+                optionButton.classList.add('btn', 'bot-button');
+                optionButton.innerText = option.value;
+                optionButton.addEventListener('click', function () {
+                    currentTargetId = option.target;
+                    sendMessage(option); // Send the selected option to backend
+                });
+                botMessageDiv.appendChild(optionButton);
+
+                // Modify the option object to include the source
+                option.source = source;
+            });
+        }
+
+        function sendOptionToBackend(option) {
+            var payload = {
+                label: "Options",
+                source: option.source, // Use the source from the option object
+                sourceHandle: option.sourceHandle,
+                target: option.target,
+                value: option.value
+            };
+
+            console.log(payload);
+
+            fetch('http://127.0.0.1:3100/api/YourEndpoint', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(payload)
+            })
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Option sent successfully:', data);
+                })
+                .catch(error => console.error('Error sending option to backend:', error));
+        }
+
+        function handleSendMessage() {
+            if (selectedDateTime !== null) {
+                document.getElementById("user-input").value = selectedDateTime;
+                sendMessage();
+            }
+        }
+
+        function handleSendMessageTime() {
+            if (selectedTime !== null) {
+                document.getElementById("user-input").value = selectedTime;
+                sendMessage();
+            }
+        }
+    </script>
+</body>
+
+</html>

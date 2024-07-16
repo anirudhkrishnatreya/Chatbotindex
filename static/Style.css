@@ -1,0 +1,322 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap');
+ 
+body {
+    font-family: "Poppins", sans-serif;
+    background-color: #f2f2f2;
+    margin: 0;
+    padding: 0;
+    height: 500px;
+    width: 100%;
+    overflow: hidden;
+}
+ 
+h1 {
+    text-align: center;
+    color: #333;
+}
+ 
+#chat-container {
+    width: 100%;
+    height: 100vh;
+    background-color: #fff;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    overflow-x: hidden;
+    max-width: 100%;
+}
+ 
+#chat-box {
+    height: calc(100vh - 130px);
+    overflow-y: auto;
+    overflow-x: hidden;
+    background-color: white;
+    padding-bottom: 45px;
+}
+ 
+#user-input {
+    width: 99%;
+    padding: 22px 40px 22px 22px;
+    border: none;
+    margin-left: 5px;
+    margin-right: 5px;
+    position: relative;
+    height: 55px;
+    border: #292929 1px solid;
+    border-radius: 30px;
+}
+ 
+#user-input:focus {
+    outline: none;
+}
+ 
+button {
+    border: none;
+}
+ 
+p {
+    margin: 5px 0;
+}
+ 
+p strong {
+    color: #556cd0;
+}
+ 
+::-webkit-scrollbar {
+    width: 8px;
+    color: #123E90;
+}
+ 
+.navbar {
+    background: rgb(2, 0, 36);
+    background: linear-gradient(0deg, rgb(56, 56, 56) 0%, rgb(0, 0, 0) 0%, rgb(62, 62, 62) 100%);
+    color: white;
+    position: relative;
+    top: 0;
+    width: 100%;
+    z-index: 1000;
+    padding: 0;
+}
+ 
+.top-chat {
+    width: 100%;
+    padding-bottom: 9px;
+    padding-top: 9px;
+}
+ 
+.text-top {
+    font-size: 18px;
+    font-weight: 500;
+}
+ 
+.online {
+    font-size: 12px;
+    font-weight: 400;
+    color: #51ed19;
+    margin-top: -2px;
+}
+ 
+.footer {
+    position: sticky;
+    bottom: 0;
+    width: 100%;
+    text-align: center;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    background-color: #fff;
+    z-index: 999;
+    height: 90px;
+}
+ 
+.user_img {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    margin-right: 10px;
+}
+ 
+.close_img {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    margin-right: 10px;
+    opacity: 50%;
+}
+ 
+.download_img {
+    width: 30px;
+    height: 30px;
+    margin-right: 10px;
+    border-radius: 50%;
+}
+ 
+.material-textfield {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 100%;
+    bottom: 0;
+}
+ 
+.input-image {
+    position: absolute;
+    right: 5px;
+    top: 50%;
+    transform: translateY(-50%);
+}
+ 
+.input-image img {
+    width: 30px;
+    height: 30px;
+    cursor: pointer;
+}
+ 
+.imagesend {
+    position: absolute;
+    right: 12px;
+    display: flex;
+    align-items: center;
+    height: 55px;
+}
+ 
+.send-button{
+    height: 35px;
+    width: 35px;
+    background-color: #292929;
+    border-radius: 50%;
+}
+.bot-image {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    /* Makes it rounded */
+}
+ 
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+ 
+    to {
+        opacity: 1;
+    }
+}
+ 
+.chat-message,
+.chat-user-message {
+    padding: 12px;
+    margin: 5px;
+    max-width: 80%;
+    font-size: 14px;
+    animation: fadeIn 0.3s ease-in;
+    /* Apply fade-in animation with ease-in effect */
+}
+ 
+.chat-message {
+    border-radius: 0px 20px 20px 20px;
+}
+ 
+.chat-user-message {
+    border-radius: 20px 20px 0px 20px;
+}
+ 
+.user-message {
+    background-color: #292929;
+    color: white;
+    float: right;
+}
+ 
+.bot-message {
+    background-color: #EFF2F6;
+    float: left;
+}
+.button-wrapper{
+    margin-left: 70px;
+}
+ 
+.message-bot {
+    clear: both;
+    margin-left: 3px;
+}
+ 
+.message-user {
+    clear: both;
+}
+.bot-button{
+    background-color: #ffffff;
+    color: #333;
+    border-radius: 20px;
+    margin: 5px;
+    padding-left: 10px;
+    padding-right: 10px;
+    font-size: 12px;
+    border: 1px #101010 dashed;
+}
+ 
+.sender-label {
+    font-weight: bold;
+}
+.date-select{
+    width: 170px;
+    border-radius: 10px;
+    margin-left: 70px;
+}
+.dateTime-select{
+    width: 220px;
+    border-radius: 10px;
+    margin-left: 70px;
+}
+.date-range-select{
+    width: 270px;
+    border-radius: 10px;
+    margin-left: 70px;
+}
+.time-select{
+    width: 200px;
+    border-radius: 10px;
+    margin-left: 70px;
+}
+.power-text{
+    font-size: 12px;
+}
+.powered-by{
+    margin-bottom: 5px;
+    width: 100%;
+    height: 10px;
+}
+.logo-footer{
+    height: 120%;
+}
+.loader {
+    width: 40px;
+    display: flex;
+    justify-content: space-evenly;
+    margin-bottom: -10px;
+    margin-left: -10px;
+  }
+ 
+  .ball {
+    list-style: none;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: #fff;
+  }
+ 
+  .ball:nth-child(1) {
+    animation: bounce-1 2.1s ease-in-out infinite;
+  }
+ 
+  @keyframes bounce-1 {
+    50% {
+      transform: translateY(-14px);
+      background-color: rgb(0, 0, 0);
+    }
+  }
+ 
+  .ball:nth-child(2) {
+    animation: bounce-3 2.1s ease-in-out 0.3s infinite;
+  }
+ 
+  @keyframes bounce-2 {
+    50% {
+      transform: translateY(-14px);
+      background-color: rgb(0, 0, 0);
+    }
+  }
+ 
+  .ball:nth-child(3) {
+    animation: bounce-3 2.1s ease-in-out 0.6s infinite;
+  }
+ 
+  @keyframes bounce-3 {
+    50% {
+      transform: translateY(-14px);
+      background-color: rgb(0, 0, 0);
+    }
+  }
+  .disabled-datepicker {
+    pointer-events: none;
+    opacity: 0.5; /* Optionally reduce opacity to visually indicate it's disabled */
+}
