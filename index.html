@@ -89,7 +89,7 @@
                                 "optionId": "option1",
                                 "sourceHandle": "option1",
                                 "target": "dndnode_4",
-                                "value": "Apply for leave "
+                                "value": "Apply for leave"
                             },
                             {
                                 "optionId": "option2",
@@ -133,17 +133,7 @@
             if (option) {
                 sendOptionToBackend(option);
             } else if (userMessage) {
-                // If userMessage doesn't match any option, we still need to handle it
-                // Assuming currentTargetId should be used in such cases
-                // Create a placeholder option object to send
-                option = {
-                    source: "unknown", // You might want to adjust this depending on your flow
-                    sourceHandle: "unknown",
-                    target: currentTargetId || "unknown", // Fallback to unknown if currentTargetId is not set
-                    value: userMessage,
-                    conversationId: conversationId
-                };
-                sendOptionToBackend(option);
+                console.log("Message does not match any option.");
             }
 
             // Fetch response based on currentTargetId and type
