@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <link href="//maxcdn.bootstrapcdn.com/bootstrap/4.1.1/css/bootstrap.min.css" rel="stylesheet" id="bootstrap-css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
@@ -12,8 +11,32 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Simple Flask Chatbot</title>
-</head>
+    <style>
+        .form-control {
+            width: auto;
+            max-width: 100%;
+            display: inline-block;
+            margin: 5px 25px;
+            border-radius: 25px;
 
+        }
+        .flatpickr-calendar {
+            width: auto;
+            max-width: 100%;
+        }
+        .flatpickr-time {
+            display: flex;
+            justify-content: center;
+        }
+        .flatpickr-time .flatpickr-time-segment {
+            flex: 1;
+        }
+        .flatpickr-calendar {
+            margin-top: 10px;
+            font-size: 14px;
+        }
+    </style>
+</head>
 <body>
     <header class="navbar">
         <div class="top-chat align-items-center d-flex">
@@ -29,8 +52,7 @@
                         <span class="online">● Online</span>
                     </div>
                 </div>
-                <div class="col-2" style="justify-content: end; display: flex; align-items: center;"
-                    onclick="closeChat()">
+                <div class="col-2" style="justify-content: end; display: flex; align-items: center;" onclick="closeChat()">
                     <img src="../static/close.png" class="close_img">
                 </div>
             </div>
@@ -60,6 +82,7 @@
         var conversationId;
         var availableOptions = []; // To store current available options
         var response;
+        var inputMessage; // To store the input message details
 
         document.addEventListener("DOMContentLoaded", function () {
             fetchConversationFlow();
@@ -72,15 +95,15 @@
                     'Content-Type': 'application/json'
                 },
             })
-                .then(response => response.json())
-                .then(data => {
-                    if (data && data.data && data.data.length > 0) {
-                        conversationId = data.conversationId;
-                        response = data; // Update response with the initial data
-                        processResponse(data);
-                    }
-                })
-                .catch(error => console.error('Error fetching conversation flow:', error));
+            .then(response => response.json())
+            .then(data => {
+                if (data && data.data && data.data.length > 0) {
+                    conversationId = data.conversationId;
+                    response = data; // Update response with the initial data
+                    processResponse(data);
+                }
+            })
+            .catch(error => console.error('Error fetching conversation flow:', error));
         }
 
         function sendMessage(option = null) {
@@ -100,7 +123,7 @@
             }
 
             // Determine the source for the payload
-            var source = option ? option.source : "user";
+            var source = option ? option.source : (inputMessage ? inputMessage.source : "user");
 
             // If option is available, send it to backend
             if (option) {
@@ -108,17 +131,18 @@
             } else if (userMessage) {
                 // Create a payload for user input if it doesn't match any option
                 const payload = {
-                    label: "Message",
+                    label: inputMessage ? "Input" : "Message",
                     source: source, // Set the correct source here
                     sourceHandle: "userInput",
-                    target: currentTargetId,
+                    target: inputMessage ? inputMessage.target : currentTargetId,
                     value: userMessage,
-                    conversationId: conversationId
+                    conversationId: conversationId,
+                    type: determineInputType(userMessage) // Add this line to specify the type
                 };
                 sendOptionToBackend(payload);
+                inputMessage = null; // Clear inputMessage after sending
             }
         }
-
 
         document.getElementById("user-input").addEventListener("keypress", function (event) {
             if (event.keyCode === 13) {
@@ -132,22 +156,45 @@
 
         function processResponse(data) {
             availableOptions = []; // Clear previous options
+            inputMessage = null; // Clear previous inputMessage
 
             if (data.type === 0 && data.data && data.data.length > 0) {
                 data.data.forEach(message => {
-                    if (message.label === 'Message') {
+                    if (message.label === 'Message' && message.content) {
                         addMessage('bot', message.content);
                     } else if (message.label === 'Options') {
                         addOptions(message.content, data.conversationId);
+                    } else if (message.label === 'Date Time') {
+                        if (message.type === 'date') {
+                            addDateInput(message, data.conversationId, message.target);
+                        } else if (message.type === 'dateTime') {
+                            addDateTimeInput(message, data.conversationId, message.target);
+                        } else if (message.type === 'time') {
+                            addTimeInput(message, data.conversationId, message.target);
+                        }
+                    } else if (message.label === 'Input') {
+                        inputMessage = message;
+                        document.getElementById("user-input").placeholder = "Type your input...";
                     }
                 });
             } else if (data.type === 1 && data.data && data.data.length > 0) {
                 // Handle type 1 responses for both messages and options
                 data.data.forEach(message => {
-                    if (message.label === 'Message') {
+                    if (message.label === 'Message' && message.content) {
                         addMessage('bot', message.content);
                     } else if (message.label === 'Options') {
                         addOptions(message.content, data.conversationId);
+                    } else if (message.label === 'Date Time') {
+                        if (message.type === 'date') {
+                            addDateInput(message, data.conversationId, message.target);
+                        } else if (message.type === 'dateTime') {
+                            addDateTimeInput(message, data.conversationId, message.target);
+                        } else if (message.type === 'time') {
+                            addTimeInput(message, data.conversationId, message.target);
+                        }
+                    } else if (message.label === 'Input') {
+                        inputMessage = message;
+                        document.getElementById("user-input").placeholder = "Type your input...";
                     }
                 });
             }
@@ -187,12 +234,115 @@
             });
         }
 
+        function addDateInput(message, conversationId, target) {
+            var messageContainer = document.getElementById("chat-box");
+
+            var inputElement = document.createElement('input');
+            inputElement.type = 'text';
+            inputElement.classList.add('form-control');
+            inputElement.setAttribute('id', 'date-input');
+            messageContainer.appendChild(inputElement);
+
+            flatpickr("#date-input", {
+                enableTime: false,
+                dateFormat: "m/d/Y",
+                onClose: function(selectedDates, dateStr, instance) {
+                    // Add the selected date as a user message
+                    addMessage('user', dateStr);
+
+                    // Create the payload
+                    var payload = {
+                        optionId: "option0",
+                        sourceHandle: "option0",
+                        target: target, // Use the correct target
+                        value: dateStr,
+                        source: message.source,
+                        conversationId: conversationId,
+                        label: "Date Time"
+                    };
+                    // Send the payload to backend
+                    sendOptionToBackend(payload);
+                }
+            });
+
+            messageContainer.scrollTop = messageContainer.scrollHeight;
+        }
+
+        function addDateTimeInput(message, conversationId, target) {
+            var messageContainer = document.getElementById("chat-box");
+
+            var inputElement = document.createElement('input');
+            inputElement.type = 'text';
+            inputElement.classList.add('form-control');
+            inputElement.setAttribute('id', 'datetime-input');
+            messageContainer.appendChild(inputElement);
+
+            flatpickr("#datetime-input", {
+                enableTime: true,
+                dateFormat: "m/d/Y h:i K",
+                onClose: function(selectedDates, datetimeStr, instance) {
+                    // Add the selected datetime as a user message
+                    addMessage('user', datetimeStr);
+
+                    // Create the payload
+                    var payload = {
+                        optionId: "option0",
+                        sourceHandle: "option0",
+                        target: target, // Use the correct target
+                        value: datetimeStr,
+                        source: message.source,
+                        conversationId: conversationId,
+                        label: "Date Time"
+                    };
+                    // Send the payload to backend
+                    sendOptionToBackend(payload);
+                }
+            });
+
+            messageContainer.scrollTop = messageContainer.scrollHeight;
+        }
+
+        function addTimeInput(message, conversationId, target) {
+            var messageContainer = document.getElementById("chat-box");
+
+            var inputElement = document.createElement('input');
+            inputElement.type = 'text';
+            inputElement.classList.add('form-control');
+            inputElement.setAttribute('id', 'time-input');
+            messageContainer.appendChild(inputElement);
+
+            flatpickr("#time-input", {
+                enableTime: true,
+                noCalendar: true,
+                dateFormat: "h:i K",
+                onClose: function(selectedDates, timeStr, instance) {
+                    // Add the selected time as a user message
+                    addMessage('user', timeStr);
+
+                    // Create the payload
+                    var payload = {
+                        optionId: "option0",
+                        sourceHandle: "option0",
+                        target: target, // Use the correct target
+                        value: timeStr,
+                        source: message.source,
+                        conversationId: conversationId,
+                        label: "Date Time"
+                    };
+                    // Send the payload to backend
+                    sendOptionToBackend(payload);
+                }
+            });
+
+            messageContainer.scrollTop = messageContainer.scrollHeight;
+        }
+
         function sendOptionToBackend(payload) {
             console.log('Sending payload to backend:', payload);
 
             // Ensure conversationId and label are included in the payload
             payload.conversationId = conversationId;
-            payload.label = "Options"; // Assuming this payload represents user selecting an option
+            payload.label = payload.label || "Options"; // Assuming this payload represents user selecting an option
 
             // Find the correct source from options or fallback to default
             var optionsSource = null;
@@ -202,7 +352,7 @@
                 }
             });
             console.log(optionsSource, "main")
-            var source = optionsSource; // Adjust default as needed
+            var source = payload.source || optionsSource; // Adjust default as needed
             payload.source = source;
 
             fetch('http://192.168.1.45:7007/api/GetNodeData', {
@@ -212,15 +362,26 @@
                 },
                 body: JSON.stringify(payload)
             })
-                .then(response => response.json())
-                .then(data => {
-                    console.log('Option sent successfully:', data);
-                    response = data; // Update response with the new data from backend
-                    processResponse(data); // Process the response from backend
-                })
-                .catch(error => console.error('Error sending option to backend:', error));
+            .then(response => response.json())
+            .then(data => {
+                console.log('Option sent successfully:', data);
+                response = data; // Update response with the new data from backend
+                processResponse(data); // Process the response from backend
+            })
+            .catch(error => console.error('Error sending option to backend:', error));
+        }
+
+        function determineInputType(input) {
+            if (input.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
+                return "date";
+            } else if (input.match(/^\d{2}:\d{2}$/)) {
+                return "time";
+            } else if (input.match(/^\d{2}\/\d{2}\/\d{4} \d{2}:\d{2} [APM]{2}$/)) {
+                return "datetime";
+            } else {
+                return "text";
+            }
         }
     </script>
 </body>
-
 </html>
