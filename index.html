@@ -11,6 +11,30 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Simple Flask Chatbot</title>
+    <style>
+        .form-control {
+            width: auto;
+            max-width: 100%;
+            display: inline-block;
+            margin: 5px 65px;
+            border-radius: 25px;
+        }
+        .flatpickr-calendar {
+            width: auto;
+            max-width: 100%;
+        }
+        .flatpickr-time {
+            display: flex;
+            justify-content: center;
+        }
+        .flatpickr-time .flatpickr-time-segment {
+            flex: 1;
+        }
+        .flatpickr-calendar {
+            margin-top: 10px;
+            font-size: 14px;
+        }
+    </style>
 </head>
 <body>
     <header class="navbar">
@@ -52,11 +76,8 @@
             </div>
         </div>
     </footer>
-    <script>
-        var EmployeeModel;
-        window.addEventListener("message", function (event) {
-            EmployeeModel = event.data;
-        }, false);
+    <script type="module">
+        import config from './config.js';
 
         var currentTargetId;
         var conversationId;
@@ -70,48 +91,22 @@
         });
 
         function fetchConversationFlow() {
-            const mockResponse = [{
-                "conversationId": "4FA2CB0230984522916D283B965C152C",
-                "data": [
-                    {
-                        "content": "<p>Hey i am harris how can i help you</p>",
-                        "label": "Message",
-                        "source": "dndnode_1"
-                    },
-                    {
-                        "content": [
-                            {
-                                "optionId": "option0",
-                                "sourceHandle": "option0",
-                                "target": "dndnode_3",
-                                "value": "Apply for OB request"
-                            },
-                            {
-                                "optionId": "option1",
-                                "sourceHandle": "option1",
-                                "target": "dndnode_4",
-                                "value": "Apply for leave"
-                            },
-                            {
-                                "optionId": "option2",
-                                "sourceHandle": "option2",
-                                "target": "dndnode_8",
-                                "value": "Download DTR Report"
-                            }
-                        ],
-                        "label": "Options",
-                        "source": "dndnode_2"
-                    }
-                ],
-                "type": 0
-            }];
-
-            // Assuming there's only one conversation in mockResponse for simplicity
-            conversationId = mockResponse[0].conversationId;
-
-            setTimeout(() => {
-                processResponse(mockResponse[0]);
-            }, 1000);
+            fetch(config.getFullEndpoint('getFirstNode'), {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data && data.data && data.data.length > 0) {
+                    conversationId = data.conversationId;
+                    workflowId = data.workflowId; // Store the workflowId
+                    response = data; // Update response with the initial data
+                    processResponse(data);
+                }
+            })
+            .catch(error => console.error('Error fetching conversation flow:', error));
         }
 
         function sendMessage(option = null) {
@@ -137,21 +132,20 @@
             if (option) {
                 sendOptionToBackend(option);
             } else if (userMessage) {
-                console.log("Message does not match any option.");
+                // Create a payload for user input if it doesn't match any option
+                const payload = {
+                    label: inputMessage ? "Input" : "Message",
+                    source: source, // Set the correct source here
+                    sourceHandle: "userInput",
+                    target: inputMessage ? inputMessage.target : currentTargetId,
+                    value: userMessage,
+                    conversationId: conversationId,
+                    workflowId: workflowId, // Add workflowId to the payload
+                    type: determineInputType(userMessage) // Add this line to specify the type
+                };
+                sendOptionToBackend(payload);
+                inputMessage = null; // Clear inputMessage after sending
             }
-
-            // Fetch response based on currentTargetId and type
-            fetch(`http://127.0.0.1:3100/api/GetRecord/${currentTargetId}/0`, {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json'
-                }
-            })
-                .then(response => response.json())
-                .then(data => {
-                    processResponse(data);
-                })
-                .catch(error => console.error('Error sending message:', error));
         }
 
         document.getElementById("user-input").addEventListener("keypress", function (event) {
@@ -244,19 +238,132 @@
             });
         }
 
-        function sendOptionToBackend(option) {
-            var payload = {
-                label: "Options",
-                source: option.source, // Use the source from the option object
-                sourceHandle: option.sourceHandle,
-                target: option.target,
-                value: option.value,
-                conversationId: option.conversationId // Include the conversationId
-            };
+        function addDateInput(message, conversationId, target) {
+            var messageContainer = document.getElementById("chat-box");
 
-            console.log(payload);
+            var inputElement = document.createElement('input');
+            inputElement.type = 'text';
+            inputElement.classList.add('form-control');
+            inputElement.setAttribute('id', 'date-input');
+            messageContainer.appendChild(inputElement);
 
-            fetch('http://127.0.0.1:3100/api/YourEndpoint', {
+            flatpickr("#date-input", {
+                enableTime: false,
+                dateFormat: "m/d/Y",
+                onClose: function(selectedDates, dateStr, instance) {
+                    // Add the selected date as a user message
+                    addMessage('user', dateStr);
+
+                    // Create the payload
+                    var payload = {
+                        optionId: "option0",
+                        sourceHandle: "option0",
+                        target: target, // Use the correct target
+                        value: dateStr,
+                        source: message.source,
+                        conversationId: conversationId,
+                        workflowId: workflowId, // Add workflowId to the payload
+                        label: "Date Time"
+                    };
+                    // Send the payload to backend
+                    sendOptionToBackend(payload);
+                }
+            });
+
+            messageContainer.scrollTop = messageContainer.scrollHeight;
+        }
+
+        function addDateTimeInput(message, conversationId, target) {
+            var messageContainer = document.getElementById("chat-box");
+
+            var inputElement = document.createElement('input');
+            inputElement.type = 'text';
+            inputElement.classList.add('form-control');
+            inputElement.setAttribute('id', 'datetime-input');
+            messageContainer.appendChild(inputElement);
+
+            flatpickr("#datetime-input", {
+                enableTime: true,
+                dateFormat: "m/d/Y h:i K",
+                onClose: function(selectedDates, datetimeStr, instance) {
+                    // Add the selected datetime as a user message
+                    addMessage('user', datetimeStr);
+
+                    // Create the payload
+                    var payload = {
+                        optionId: "option0",
+                        sourceHandle: "option0",
+                        target: target, // Use the correct target
+                        value: datetimeStr,
+                        source: message.source,
+                        conversationId: conversationId,
+                        workflowId: workflowId, // Add workflowId to the payload
+                        label: "Date Time"
+                    };
+                    // Send the payload to backend
+                    sendOptionToBackend(payload);
+                }
+            });
+
+            messageContainer.scrollTop = messageContainer.scrollHeight;
+        }
+
+        function addTimeInput(message, conversationId, target) {
+            var messageContainer = document.getElementById("chat-box");
+
+            var inputElement = document.createElement('input');
+            inputElement.type = 'text';
+            inputElement.classList.add('form-control');
+            inputElement.setAttribute('id', 'time-input');
+            messageContainer.appendChild(inputElement);
+
+            flatpickr("#time-input", {
+                enableTime: true,
+                noCalendar: true,
+                dateFormat: "h:i K",
+                onClose: function(selectedDates, timeStr, instance) {
+                    // Add the selected time as a user message
+                    addMessage('user', timeStr);
+
+                    // Create the payload
+                    var payload = {
+                        optionId: "option0",
+                        sourceHandle: "option0",
+                        target: target, // Use the correct target
+                        value: timeStr,
+                        source: message.source,
+                        conversationId: conversationId,
+                        workflowId: workflowId, // Add workflowId to the payload
+                        label: "Date Time"
+                    };
+                    // Send the payload to backend
+                    sendOptionToBackend(payload);
+                }
+            });
+
+            messageContainer.scrollTop = messageContainer.scrollHeight;
+        }
+
+        function sendOptionToBackend(payload) {
+            console.log('Sending payload to backend:', payload);
+
+            // Ensure conversationId and label are included in the payload
+            payload.conversationId = conversationId;
+            payload.workflowId = workflowId; // Add workflowId to the payload
+            payload.label = payload.label || "Options"; // Assuming this payload represents user selecting an option
+
+            // Find the correct source from options or fallback to default
+            var optionsSource = null;
+            response.data.forEach(function (item) {
+                if (item.label === "Options") {
+                    optionsSource = item.source;
+                }
+            });
+            console.log(optionsSource, "main")
+            var source = payload.source || optionsSource; // Adjust default as needed
+            payload.source = source;
+
+            fetch(config.getFullEndpoint('getNodeData'), {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
